@@ -1,0 +1,38 @@
+---
+- name: Join a Kubernetes node to the cluster
+# Can't guarantee safety of using this. Requires manually initializing the cluster.
+  hosts: k8s_setup
+  become: yes
+  vars:
+    kubernetes_token: "<token>"
+    token_hash: "sha256:<token sha256 hash>"
+    certificate_key: "<certificate key>"
+
+  tasks:
+    - name: Join the node to the Kubernetes Cluster as a control plane
+      when: inventory_hostname in groups['k8scp','k8shy']
+      shell: >
+        kubeadm join k8scp:6443
+        --token {{ kubernetes_token }}
+        --discovery-token-ca-cert-hash {{ token_hash }}
+        --certificate-key {{ certificate_key }}
+        --control-plane
+      args:
+        executable: /bin/bash
+        creates: /etc/kubernetes/kubelet.conf
+
+    - name: Remove taints from the node to allow scheduling workloads
+      when: inventory_hostname in groups['k8shy']
+      shell: kubectl taint nodes {{ ansible_hostname }} node-role.kubernetes.io/control-plane:NoSchedule-
+      ignore_errors: yes
+
+    - name: Join the node to the Kubernetes Cluster as a worker node
+      when: inventory_hostname in groups['k8swn']
+      shell: >
+        kubeadm join k8scp:6443 
+        --token {{ kubernetes_token }}
+        --discovery-token-ca-cert-hash {{ token_hash }}
+        --certificate-key {{ certificate_key }}
+      args:
+        executable: /bin/bash
+        creates: /etc/kubernetes/kubelet.conf

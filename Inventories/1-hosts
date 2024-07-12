@@ -1,0 +1,26 @@
+all:
+  hosts:
+    motherbrain:
+      ansible_host: 192.168.0.3
+      ansible_port: 22201
+    ridley:
+      ansible_host: 192.168.0.3
+      ansible_port: 22202
+    kraid:
+      ansible_host: 192.168.0.3
+      ansible_port: 22203
+    chozo:
+      ansible_host: 192.168.0.3
+      ansible_port: 22204
+    luminoth:
+      ansible_host: 192.168.0.3
+      ansible_port: 22205
+    federation:
+      ansible_host: 192.168.0.3
+      ansible_port: 22206
+    spacepirates:
+      ansible_host: 192.168.0.3
+      ansible_port: 22207
+    etank:
+      ansible_host: 192.168.0.3
+      ansible_port: 22208

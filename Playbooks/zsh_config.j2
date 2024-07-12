@@ -1,0 +1,21 @@
+# Zsh Configuration
+# Add your Zsh configuration here
+# Example Zsh configurations go here
+
+# The following lines were added by compinstall
+zstyle ':completion:*' completer _complete _ignored _correct
+zstyle ':completion:*' format 'Completing %d'
+zstyle ':completion:*' matcher-list '' 'm:{[:lower:]}={[:upper:]} m:{[:lower:][:upper:]}={[:upper:][:lower:]}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' max-errors 2 numeric
+zstyle :compinstall filename '{{ ansible_env.HOME }}/.zshrc'
+
+autoload -Uz compinit
+compinit
+# End of lines added by compinstall
+# Lines configured by zsh-newuser-install
+HISTFILE=~/.histfile
+HISTSIZE=9001
+SAVEHIST=9001
+setopt autocd
+bindkey -e
+# End of lines configured by zsh-newuser-install

@@ -1,0 +1,199 @@
+# Hardening continued
+---
+- name: Hardening settings Part 2
+  hosts: hardening
+  become: yes
+
+  tasks:
+    - name: Set root password to '!'
+      when: inventory_hostname in groups['amdpc']
+      lineinfile:
+        path: /etc/shadow
+        regexp: '^root:\*:'
+        line: 'root:!:'
+        backup: yes
+
+    # Configuring SSH server settings
+    - name: Port 22
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^Port '
+        line: 'Port 22'
+        state: present
+
+    - name: Protocol 2
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^Protocol '
+        line: 'Protocol 2'
+        state: present
+
+    - name: AllowUsers
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^AllowUsers '
+        line: "AllowUsers {{ ansible_user }}"
+        state: present
+
+    - name: AuthenticationMethods
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^AuthenticationMethods '
+        line: 'AuthenticationMethods publickey,keyboard-interactive'
+        state: present
+
+    - name: ChallengeResponseAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^ChallengeResponseAuthentication '
+        line: 'ChallengeResponseAuthentication yes'
+        state: present
+
+    - name: KbdInteractiveAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^KbdInteractiveAuthentication '
+        line: 'KbdInteractiveAuthentication yes'
+        state: present
+
+    - name: LoginGraceTime
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^LoginGraceTime '
+        line: 'LoginGraceTime 5m'
+        state: present
+
+    - name: PermitRootLogin
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin '
+        line: 'PermitRootLogin no'
+        state: present
+
+    - name: MaxAuthTries
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^MaxAuthTries '
+        line: 'MaxAuthTries 5'
+        state: present
+
+    - name: PubkeyAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PubkeyAuthentication '
+        line: 'PubkeyAuthentication yes'
+        state: present
+
+    - name: PasswordAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication '
+        line: 'PasswordAuthentication no'
+        state: present
+
+    - name: PermitEmptyPasswords
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitEmptyPasswords '
+        line: 'PermitEmptyPasswords no'
+        state: present
+
+    - name: KerberosAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^KerberosAuthentication '
+        line: 'KerberosAuthentication no'
+        state: present
+
+    - name: GSSAPIAuthentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^GSSAPIAuthentication '
+        line: 'GSSAPIAuthentication no'
+        state: present
+
+    - name: Reduce requirements to access ssh from LAN
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^(Match Address .+)$'
+        replace: |
+          Match Address {{ local_ip_pool }} User {{ ansible_user }}
+            AuthenticationMethods publickey
+            KbdInteractiveAuthentication no
+
+    - name: This is just in case.
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^(Match User .+@.+)$'
+        replace: |
+          Match User {{ ansible_user }}@*
+            AuthenticationMethods publickey,keyboard-interactive
+            KbdInteractiveAuthentication yes
+
+    - name: Template for adding new user accounts
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: |
+          #Match User <New account>
+          #  UsePAMSubsystem yes
+          #  AuthenticationMethods password
+          #  PasswordAuthentication yes
+        state: present
+        insertafter: EOF
+
+    - name: Comment out "@include common-auth" in /etc/pam.d/sshd
+      replace:
+        path: /etc/pam.d/sshd
+        regexp: '(@include common-auth)'
+        replace: '#\1'
+        backup: yes
+
+    - name: Add "auth required pam_google_authenticator.so" to /etc/pam.d/sshd
+      lineinfile:
+        path: /etc/pam.d/sshd
+        line: 'auth required pam_google_authenticator.so'
+        state: present
+        create: yes
+
+    - name: Create PAM file for new users
+      template:
+        src: pam_sshd-newusers.j2
+        dest: /etc/pam.d/sshd-newusers
+        owner: root
+        group: root
+        mode: '0644'
+        
+    - name: Change SSH port in /etc/fail2ban/jail.local
+      lineinfile:
+        path: /etc/fail2ban/jail.local
+        regexp: '^port[ \t]*=[ \t]*ssh$'
+        line: 'port = 22'
+        state: present
+
+    - name: Comment out swapspace line in /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^\s*UUID=[^#]+[ \t]+swap[ \t]+'
+        line: '# &'
+        state: present
+
+    - name: Prevent automatically changing hosts file
+      when: inventory_hostname in groups['armpc']
+      replace:
+        path: /etc/cloud/cloud.cfg
+        regexp: '^\s*-\s*update_etc_hosts'
+        replace: '# - update_etc_hosts'
+
+    - name: Prevent automatically changing SSH Server config
+      when: inventory_hostname in groups['armpc']
+      replace:
+        path: /etc/cloud/cloud.cfg
+        regexp: '^\s*-\s*ssh'
+        replace: '# - ssh'
+
+    - name: Reboot the system
+      reboot:
+        reboot_timeout: 300
+        test_command: uptime
+      async: 0
+      poll: 0

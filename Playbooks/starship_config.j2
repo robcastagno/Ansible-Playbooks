@@ -1,0 +1,83 @@
+# Starship Configuration
+# Start with a blank line to make the terminal less claustrophobic
+add_newline = true
+format = """
+[╭](fg:#{{ background_color1 }})\
+$os\
+$shell\
+[ ](fg:#{{ background_color1 }} bg:#{{ background_color2 }})\
+$username\
+$hostname\
+[ ](fg:#{{ background_color2 }} bg:#{{ background_color3 }})\
+$directory\
+[ ](fg:#{{ background_color3 }} bg:#{{ background_color4 }})\
+$git_branch\
+$git_status\
+$kubernetes\
+$container\
+[ ](fg:#{{ background_color4 }} bg:#{{ background_color5 }})\
+$time\
+$battery\
+$sudo\
+[ ](fg:#{{ background_color5 }})
+[╰─►](fg:#{{ background_color1 }})\
+$character\
+"""
+
+# First Background Color
+[os]
+format = '[$symbol](bg:#{{ background_color1 }} fg:#{{ text_color1 }})'
+disabled = false
+
+[os.symbols]
+Ubuntu = ''
+Windows = ''
+
+[shell]
+disabled = false
+format = '[ $indicator ](bg:#{{ background_color1 }} fg:#{{ text_color1 }})'
+bash_indicator = 'bsh'
+zsh_indicator = 'zsh'
+powershell_indicator = 'psh'
+
+# Second Background Color
+[username]
+style_root = 'bg:#{{ background_color2 }} fg:#{{ text_color2 }}'
+style_user = 'bg:#{{ background_color2 }} fg:#{{ text_color1 }}'
+format = '[$user]($style bold)'
+show_always = true
+
+[hostname]
+ssh_only = false
+format = '[@$hostname ](bg:#{{ background_color2 }} fg:#{{ text_color1 }})'
+
+# Third Background Color
+[directory]
+format = '[$path ](bg:#{{ background_color3 }} fg:#{{ text_color1 }})[$read_only ](bg:#{{ background_color3 }} fg:#{{ text_color1 }})'
+truncation_symbol = '.../'
+
+# Fourth Background Color
+[git_branch]
+format = '[$symbol$branch(:$remote_branch)](bg:#{{ background_color4 }} fg:#{{ text_color1 }})'
+
+[git_status]
+format = '([\[$all_status$ahead_behind\] ](bg:#{{ background_color4 }} fg:#{{ text_color1 }}) )'
+
+[kubernetes]
+format = '[$symbol$context( \($namespace\)) ](bg:#{{ background_color4 }} fg:#{{ text_color1 }})'
+
+[container]
+format = '[$symbol \[$name\] ](bg:#{{ background_color4 }} fg:#{{ text_color1 }})'
+
+# Fifth Background Color
+[time]
+disabled = false
+format = '[ $time](bg:#{{ background_color5 }} fg:#{{ text_color1 }})'
+
+[battery]
+style = 'bg:#{{ background_color5 }} fg:#{{ text_color1 }}'
+
+[sudo]
+format = '[ $symbol](bg:#{{ background_color5 }} fg:#{{ text_color1 }})'
+symbol = '󰛄 '
+disabled = false

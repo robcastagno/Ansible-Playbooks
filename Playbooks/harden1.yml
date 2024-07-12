@@ -1,0 +1,42 @@
+# Set up servers
+---
+- name: Harden server
+  hosts: hardening
+  become: yes
+
+  tasks:
+  - name: Set Timezone
+    command: timedatectl set-timezone America/New_York
+
+  - name: Update APT packages and upgrade
+    apt:
+      update_cache: yes
+      upgrade: yes
+      cache_valid_time: 3600
+
+  - name: Disable swap
+    command: swapoff -a
+    ignore_errors: yes
+
+  - name: Install required packages
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - libpam-google-authenticator
+      - fail2ban
+      - curl
+      - apt-transport-https
+      - git
+      - wget
+      - gnupg2
+      - software-properties-common
+      - lsb-release
+      - ca-certificates
+      - uidmap
+
+  - name: Copy fail2ban configuration
+    copy:
+      remote_src: /etc/fail2ban/jail.conf
+      dest: /etc/fail2ban/jail.local
+    when: ansible_facts['os_family'] == 'Debian'

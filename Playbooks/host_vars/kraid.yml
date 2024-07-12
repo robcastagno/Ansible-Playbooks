@@ -1,0 +1,8 @@
+ansible_user: user
+background_color1: 'B8A920'
+background_color2: 'C2BE18'
+background_color3: 'CCD410'
+background_color4: 'D6E908'
+background_color5: 'E1FF00'
+text_color1: 'FFFFFF'
+text_color2: '000000'

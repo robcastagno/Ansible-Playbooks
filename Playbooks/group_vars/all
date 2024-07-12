@@ -1,0 +1,2 @@
+local_ip_pool: 192.168.0.0/24
+nfs_storage_location: "/storage"

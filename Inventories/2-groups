@@ -1,0 +1,46 @@
+k8scp:
+  hosts:
+    motherbrain:
+
+k8swn:
+  hosts:
+    chozo:
+    luminoth:
+    federation:
+    spacepirates:
+
+k8shy:
+  hosts:
+    ridley:
+    kraid:
+
+nfshost:
+  hosts:
+    etank:
+
+amdpc:
+  hosts:
+    motherbrain:
+    chozo:
+    federation:
+    spacepirates:
+    etank:
+
+armpc:
+  hosts:
+    ridley:
+    kraid:
+    luminoth:
+
+k8scluster:
+  children:
+    k8scp:
+    k8swn:
+    k8shy:
+
+setup:
+  children:
+    hardening:
+    hardened:
+    zsh_setup:
+    k8s_setup:

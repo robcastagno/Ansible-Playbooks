@@ -1,0 +1,97 @@
+# Suggested manual update for first node of cluster to ensure use of `kubeadm upgrade plan`
+---
+- name: Upgrade Kubernetes nodes
+  hosts: k8scluster:!motherbrain
+  # This line tells Ansible to manage one host at a time, for rolling updates.
+  serial: 1
+  vars: 
+    kubeadm_version: 'kubeadm={{ k8s_version }}-*'
+    kubelet_version: 'kubelet={{ k8s_version }}-*'
+    kubectl_version: 'kubectl={{ k8s_version }}-*'
+  become: yes
+
+  tasks:
+    - name: Check K8S version
+      shell: kubeadm version -o short | grep -oP '\d+\.\d+\.\d+'
+      register: current_version
+      ignore_errors: yes
+    
+    - name: Add Kubernetes' GPG key
+      when: current_version.stdout != k8s_version
+      get_url:
+        url: https://pkgs.k8s.io/{{ k8s_release }}/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        mode: '0644'
+
+    - name: Add Kubernetes' repository
+      when: current_version.stdout != k8s_version
+      deb822_repository:
+        repo: |
+          Types: deb
+          URIs: https://pkgs.k8s.io/{{ k8s_release }}/deb/
+          Suites: /
+          Signed-By: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        state: present
+        filename: kubernetes
+
+    # Dist Upgrades are a bit dangerous, can swap to safe
+    - name: Update APT packages and upgrade
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Allow kubeadm, kubelet, and kubeadm to update them
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: install
+      loop:
+        - kubeadm
+        - kubelet
+        - kubectl
+
+    - name: Upgrade kubeadm package
+      when: current_version.stdout == k8s_version
+      apt:
+        name: "{{ kubeadm_version }}"
+        state: present
+
+    - name: Upgrade kubeadm on the node
+      when: current_version.stdout == k8s_version
+      shell: kubeadm upgrade node
+
+    - name: Drain node for maintenance
+      when: 
+      - current_version.stdout == k8s_version
+      - inventory_hostname in groups['k8swn','k8shy']
+      shell: kubectl drain {{ inventory_hostname }} --ignore-daemonsets
+
+    - name: Upgrade kubectl and kubelet
+      when: current_version.stdout == k8s_version
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ kubectl_version }}"
+        - "{{ kubelet_version }}"
+
+    # Only happens when worker nodes are drained to ensure max uptime
+    - name: Reboot node to finish installation
+      when: current_version.stdout == k8s_version
+      reboot:  
+        msg: "Ansible rebooting PC to finish upgrading nodes"
+      
+    - name: Uncordon the updated node
+      when: 
+      - current_version.stdout == k8s_version
+      - inventory_hostname in groups['k8swn','k8shy']
+      shell: kubectl uncordon {{ inventory_hostname }}
+
+    - name: Hold Kubernetes packages to prevent automatic updates
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubeadm
+        - kubelet
+        - kubectl

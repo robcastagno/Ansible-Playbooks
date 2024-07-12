@@ -1,0 +1,16 @@
+---
+- name: Install NFS Server and Configure Exports
+  hosts: hardened:&nfshost
+  become: yes
+
+  tasks:
+    - name: Install NFS Server
+      apt:
+        name: nfs-kernel-server
+        state: present  # Ensure that nfs-kernel-server is installed
+
+    - name: Configure /etc/exports
+      lineinfile:
+        path: /etc/exports
+        line: "{{ nfs_storage_location }} {{ inventory_hostname }}(rw,sync,no_root_squash,no_subtree_check)"
+        state: present

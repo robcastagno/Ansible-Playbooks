@@ -1,0 +1,104 @@
+---
+- name: Configure Zsh and Starship
+  hosts: hardened
+  become: yes
+
+  tasks:
+    - name: Install Zsh
+      apt:
+        name: zsh
+        state: present
+
+    - name: Copy Zsh configuration
+      template:
+        src: zsh_config.j2
+        dest: "/home/{{ ansible_user }}/.zshrc"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Change the default shell for the logged-in user
+      user:
+        name: "{{ ansible_user }}"
+        shell: /bin/zsh
+
+    - name: Change the default shell for the root user
+      user:
+        name: root
+        shell: /bin/zsh
+
+    - name: Install Oh My Zsh
+      get_url:
+        url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+        dest: /tmp/install_oh_my_zsh.sh
+        mode: '0755'
+
+    - name: Execute Oh My Zsh install script
+      expect:
+        command: /tmp/install_oh_my_zsh.sh
+        responses:
+          "Do you want to change your default shell to zsh? [Y/n]": "y"
+        creates: /home/{{ ansible_user }}/.oh-my-zsh
+
+    - name: Install Zsh autosuggestions
+      git:
+        repo: https://github.com/zsh-users/zsh-autosuggestions.git
+        dest: /home/{{ ansible_user }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+
+    - name: Install Zsh syntax highlighting
+      git:
+        repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+        dest: /home/{{ ansible_user }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+
+    - name: Update zsh plugins list
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.zshrc"
+        regexp: '^plugins='
+        line: 'plugins=(zsh-autosuggestions zsh-syntax-highlighting)'
+
+    - name: Make zsh not change my fkn ssh tab title
+      lineinfile:
+        path: "/home/{{ ansible_user }}/.zshrc"
+        regexp: '^# DISABLE_AUTO_TITLE="true"'
+        line: 'DISABLE_AUTO_TITLE="true"'
+        backrefs: yes
+
+    - name: Create font directory
+      file:
+        path: "/home/{{ ansible_user }}/.local/share/fonts"
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Download DejaVu Sans Mono Nerd Font
+      get_url:
+        url: "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/DejaVuSansMono.zip"
+        dest: "/home/{{ ansible_user }}/.local/share/fonts/DejaVuSansMonoNerdFont.ttf"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+    - name: Update font cache
+      command:
+        cmd: fc-cache -fv
+      become: yes
+
+    - name: Download Starship install script
+      get_url:
+        url: https://starship.rs/install.sh
+        dest: /tmp/install_starship.sh
+        mode: '0755'
+
+    - name: Execute Starship install script
+      command: /tmp/install_starship.sh
+      args:
+        creates: /home/{{ ansible_user }}/.config/starship.toml
+
+    - name: Copy Starship configuration
+      template:
+        src: starship_config.j2
+        dest: "/home/{{ ansible_user }}/.config/starship.toml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
